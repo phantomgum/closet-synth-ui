@@ -2,8 +2,11 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 function useClock() {
-  const [now, setNow] = useState(() => new Date());
+  // null until mounted — the server can't know the display's local time,
+  // so rendering it during SSR would cause a hydration mismatch.
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
@@ -12,12 +15,12 @@ function useClock() {
 
 export function AmbientScreen() {
   const now = useClock();
-  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const date = now.toLocaleDateString([], {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const time = now
+    ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : "--:--";
+  const date = now
+    ? now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })
+    : "\u00A0";
 
   return (
     <motion.div
