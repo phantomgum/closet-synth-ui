@@ -15,7 +15,7 @@ const OPTIONS: { value: ClosetMode; label: string }[] = [
 export function ModeToggle({ mode, onChange }: ModeToggleProps) {
   return (
     <div
-      className="glass-panel flex items-center gap-1 rounded-full p-1.5"
+      className="linen-panel flex items-center gap-1 rounded-full p-1"
       role="radiogroup"
       aria-label="Wardrobe scope"
     >
@@ -30,15 +30,15 @@ export function ModeToggle({ mode, onChange }: ModeToggleProps) {
               e.stopPropagation();
               onChange(opt.value);
             }}
-            className={`relative rounded-full px-7 py-3.5 text-lg font-semibold tracking-wide transition-colors duration-200 ${
+            className={`relative rounded-full px-6 py-2.5 font-mono text-[11px] tracking-[0.3em] uppercase transition-colors duration-200 ${
               active ? "text-primary-foreground" : "text-muted-foreground"
             }`}
           >
             {active && (
               <motion.span
                 layoutId="mode-pill"
-                transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                className="absolute inset-0 rounded-full bg-primary signal-glow"
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                className="absolute inset-0 rounded-full bg-primary"
               />
             )}
             <span className="relative">{opt.label}</span>
