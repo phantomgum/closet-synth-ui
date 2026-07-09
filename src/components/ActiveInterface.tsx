@@ -9,10 +9,10 @@ import outfitShoes from "@/assets/outfit-shoes.jpg";
 import outfitAccessory from "@/assets/outfit-accessory.jpg";
 
 const OUTFIT: OutfitItem[] = [
-  { slot: "Top", title: "Tech Shell Bomber", vibe: "Midnight Utility", image: outfitTop },
-  { slot: "Bottom", title: "Tapered Cargo Trouser", vibe: "Ripstop Cotton", image: outfitBottom },
-  { slot: "Footwear", title: "Noir Court Sneaker", vibe: "Matte Leather", image: outfitShoes },
-  { slot: "Accessory", title: "Obsidian Field Watch", vibe: "Quiet Precision", image: outfitAccessory },
+  { slot: "Top", title: "Linen Notch Blazer", vibe: "Sun-Bleached Bone", image: outfitTop },
+  { slot: "Bottom", title: "Pleated Wool Trouser", vibe: "Warm Camel", image: outfitBottom },
+  { slot: "Footwear", title: "Horsebit Loafer", vibe: "Cognac Calfskin", image: outfitShoes },
+  { slot: "Accessory", title: "Brass Field Watch", vibe: "Cream Dial, Tan Strap", image: outfitAccessory },
 ];
 
 interface ActiveInterfaceProps {
