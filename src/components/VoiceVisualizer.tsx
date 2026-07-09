@@ -1,49 +1,45 @@
 import { motion } from "framer-motion";
 
-const BAR_COUNT = 24;
+const BAR_COUNT = 28;
 
 export function VoiceVisualizer() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.6 }}
-      className="glass-panel relative flex flex-col items-center justify-center gap-6 overflow-hidden rounded-3xl px-10 py-12"
+      className="linen-panel relative flex items-center gap-8 overflow-hidden rounded-2xl px-8 py-7"
     >
-      {/* pulsing mic core */}
-      <div className="relative flex h-16 w-16 items-center justify-center">
+      {/* brass bloom */}
+      <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
         <span
-          className="absolute inset-0 rounded-full border-2 border-signal"
-          style={{ animation: "pulse-ring 2.4s ease-out infinite" }}
+          className="absolute inset-0 rounded-full bg-brass-dim"
+          style={{ animation: "bloom 2.8s ease-in-out infinite" }}
         />
-        <span
-          className="absolute inset-0 rounded-full border border-signal"
-          style={{ animation: "pulse-ring 2.4s ease-out 1.2s infinite" }}
-        />
-        <div className="h-16 w-16 rounded-full bg-signal-dim ring-1 ring-signal/50 flex items-center justify-center">
-          <div className="h-3 w-3 rounded-full bg-signal signal-glow" />
-        </div>
+        <div className="relative h-3 w-3 rounded-full bg-brass brass-glow" />
       </div>
 
       {/* idle waveform */}
-      <div className="flex h-12 items-center gap-1.5" aria-hidden>
+      <div className="flex h-10 flex-1 items-center gap-[5px]" aria-hidden>
         {Array.from({ length: BAR_COUNT }).map((_, i) => (
           <span
             key={i}
-            className="w-1.5 rounded-full bg-signal/60"
+            className="w-[3px] flex-1 rounded-full bg-primary/40"
             style={{
               height: "100%",
-              animation: `waveform ${1.2 + (i % 5) * 0.25}s ease-in-out ${i * 0.08}s infinite`,
+              animation: `waveform ${1.4 + (i % 6) * 0.22}s ease-in-out ${i * 0.07}s infinite`,
               transformOrigin: "center",
             }}
           />
         ))}
       </div>
 
-      <div className="text-center">
-        <p className="text-3xl font-medium tracking-wide">Awaiting Voice Command…</p>
-        <p className="mt-2 font-mono text-sm tracking-[0.35em] text-muted-foreground uppercase">
-          Mic array · standby
+      <div className="min-w-0 shrink-0 text-right">
+        <p className="font-display text-2xl italic leading-none text-ink">
+          Listening…
+        </p>
+        <p className="mt-1.5 font-mono text-[10px] tracking-[0.4em] text-muted-foreground uppercase">
+          Say a mood
         </p>
       </div>
     </motion.div>

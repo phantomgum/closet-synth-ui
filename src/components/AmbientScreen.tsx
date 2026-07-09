@@ -2,8 +2,6 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 function useClock() {
-  // null until mounted — the server can't know the display's local time,
-  // so rendering it during SSR would cause a hydration mismatch.
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     setNow(new Date());
@@ -27,24 +25,30 @@ export function AmbientScreen() {
       key="ambient"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.04 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      className="ambient-bg flex min-h-screen flex-col items-center justify-center select-none"
+      exit={{ opacity: 0, scale: 1.03 }}
+      transition={{ duration: 0.9, ease: "easeOut" }}
+      className="ambient-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-8 select-none"
     >
+      {/* Corner marks — atelier catalog feel */}
+      <div className="pointer-events-none absolute inset-6 flex items-start justify-between font-mono text-[10px] tracking-[0.4em] text-muted-foreground uppercase">
+        <span>Atelier · N°01</span>
+        <span>Standby</span>
+      </div>
+
       <motion.p
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 1 }}
-        className="font-mono text-sm tracking-[0.5em] text-muted-foreground uppercase"
+        transition={{ delay: 0.35, duration: 1 }}
+        className="font-sans text-xs tracking-[0.55em] text-muted-foreground uppercase"
       >
-        Awaiting System Wake
+        Good to see you
       </motion.p>
 
       <motion.h1
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15, duration: 1 }}
-        className="text-glow mt-4 text-[clamp(6rem,20vw,14rem)] leading-none font-medium tracking-tight tabular-nums"
+        transition={{ delay: 0.1, duration: 1.1, ease: "easeOut" }}
+        className="mt-6 font-display text-[clamp(7rem,22vw,16rem)] leading-[0.9] font-normal tracking-tight tabular-nums text-ink"
       >
         {time}
       </motion.h1>
@@ -52,18 +56,27 @@ export function AmbientScreen() {
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6, duration: 1 }}
-        className="mt-6 text-2xl font-light text-muted-foreground"
+        transition={{ delay: 0.55, duration: 1 }}
+        className="mt-4 font-display italic text-2xl text-muted-foreground"
       >
         {date}
       </motion.p>
 
-      {/* breathing status dot */}
+      {/* breathing brass dot */}
       <motion.div
-        animate={{ opacity: [0.3, 1, 0.3] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="mt-16 h-2 w-2 rounded-full bg-signal signal-glow"
+        animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.15, 1] }}
+        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+        className="mt-16 h-1.5 w-1.5 rounded-full bg-brass brass-glow"
       />
+
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1, duration: 1.2 }}
+        className="mt-4 font-sans text-[11px] tracking-[0.45em] text-muted-foreground uppercase"
+      >
+        Step closer to begin
+      </motion.p>
     </motion.div>
   );
 }

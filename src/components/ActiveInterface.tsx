@@ -9,10 +9,10 @@ import outfitShoes from "@/assets/outfit-shoes.jpg";
 import outfitAccessory from "@/assets/outfit-accessory.jpg";
 
 const OUTFIT: OutfitItem[] = [
-  { slot: "Top", title: "Tech Shell Bomber", vibe: "Vibe · Midnight Utility", image: outfitTop },
-  { slot: "Bottom", title: "Tapered Cargo Trouser", vibe: "Material · Ripstop Cotton", image: outfitBottom },
-  { slot: "Footwear", title: "Noir Court Sneaker", vibe: "Material · Matte Leather", image: outfitShoes },
-  { slot: "Accessory", title: "Obsidian Field Watch", vibe: "Vibe · Quiet Precision", image: outfitAccessory },
+  { slot: "Top", title: "Tech Shell Bomber", vibe: "Midnight Utility", image: outfitTop },
+  { slot: "Bottom", title: "Tapered Cargo Trouser", vibe: "Ripstop Cotton", image: outfitBottom },
+  { slot: "Footwear", title: "Noir Court Sneaker", vibe: "Matte Leather", image: outfitShoes },
+  { slot: "Accessory", title: "Obsidian Field Watch", vibe: "Quiet Precision", image: outfitAccessory },
 ];
 
 interface ActiveInterfaceProps {
@@ -21,38 +21,44 @@ interface ActiveInterfaceProps {
 
 export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
   const [mode, setMode] = useState<ClosetMode>("in-closet");
+  const today = new Date().toLocaleDateString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <motion.div
       key="active"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="ambient-bg min-h-screen overflow-y-auto px-8 pb-12 lg:px-14"
+      className="ambient-bg min-h-screen overflow-y-auto px-8 pb-14 lg:px-16"
     >
       {/* Header */}
-      <header className="flex items-center justify-between pt-8 pb-10">
+      <header className="flex items-start justify-between pt-9 pb-10">
         <div>
           <motion.p
-            initial={{ opacity: 0, x: -12 }}
+            initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="font-mono text-sm tracking-[0.4em] text-signal uppercase"
+            transition={{ delay: 0.05 }}
+            className="flex items-center gap-2.5 font-mono text-[11px] tracking-[0.45em] text-muted-foreground uppercase"
           >
-            ● System Active
+            <span className="h-1.5 w-1.5 rounded-full bg-brass brass-glow" />
+            {today} · Atelier
           </motion.p>
           <motion.h1
-            initial={{ opacity: 0, x: -12 }}
+            initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.18 }}
-            className="mt-1 text-4xl font-bold tracking-tight"
+            transition={{ delay: 0.15 }}
+            className="mt-2 font-display text-6xl leading-none font-normal tracking-tight text-ink"
           >
-            Smart Closet
+            Today, you'll wear<span className="italic text-brass">.</span>
           </motion.h1>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <ModeToggle mode={mode} onChange={setMode} />
           <button
             onClick={(e) => {
@@ -60,7 +66,7 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
               onSleep();
             }}
             aria-label="Return to standby"
-            className="glass-panel rounded-full px-5 py-3.5 font-mono text-sm tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground"
+            className="linen-panel rounded-full px-5 py-3 font-mono text-[11px] tracking-[0.35em] text-muted-foreground uppercase transition-colors hover:text-foreground"
           >
             Standby
           </button>
@@ -73,20 +79,27 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
       </section>
 
       {/* Generated outfit grid */}
-      <section className="mx-auto mt-12 max-w-6xl" aria-label="Generated outfit">
+      <section className="mx-auto mt-14 max-w-6xl" aria-label="Generated outfit">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mb-6 flex items-baseline justify-between"
+          className="mb-8 flex items-end justify-between border-b border-[color:var(--linen-border)] pb-4"
         >
-          <h2 className="text-2xl font-semibold tracking-tight">Generated Fit</h2>
-          <p className="font-mono text-sm tracking-[0.3em] text-muted-foreground uppercase">
-            Scope · {mode === "in-closet" ? "In-Closet" : "Global Wardrobe"}
+          <div>
+            <p className="font-mono text-[11px] tracking-[0.4em] text-muted-foreground uppercase">
+              The look · N°04
+            </p>
+            <h2 className="mt-1 font-display text-3xl font-normal italic tracking-tight text-ink">
+              Assembled for you
+            </h2>
+          </div>
+          <p className="font-mono text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
+            Scope — {mode === "in-closet" ? "In-Closet" : "Global Wardrobe"}
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-6 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
           {OUTFIT.map((item, i) => (
             <OutfitCard key={item.slot} item={item} index={i} />
           ))}
