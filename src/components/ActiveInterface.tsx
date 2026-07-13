@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ModeToggle, type ClosetMode } from "./ModeToggle";
 import { VoiceVisualizer } from "./VoiceVisualizer";
 import { OutfitCard, type OutfitItem } from "./OutfitCard";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 import outfitTop from "@/assets/outfit-top.jpg";
 import outfitBottom from "@/assets/outfit-bottom.jpg";
 import outfitShoes from "@/assets/outfit-shoes.jpg";
@@ -21,6 +22,7 @@ interface ActiveInterfaceProps {
 
 export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
   const [mode, setMode] = useState<ClosetMode>("in-closet");
+  const dragScroll = useDragScroll<HTMLDivElement>();
   const today = new Date().toLocaleDateString([], {
     weekday: "long",
     month: "long",
@@ -34,7 +36,8 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="ambient-bg min-h-screen overflow-y-auto px-8 pb-14 lg:px-16"
+      {...dragScroll}
+      className="ambient-bg min-h-screen overflow-y-auto px-8 pb-14 lg:px-16 select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
     >
       {/* Header */}
       <header className="flex items-start justify-between pt-9 pb-10">
