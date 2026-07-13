@@ -37,7 +37,7 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
       {...dragScroll}
-      className="ambient-bg min-h-screen overflow-y-auto px-8 pb-14 lg:px-16 select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      className="ambient-bg h-screen overflow-y-auto px-8 pb-14 lg:px-16 select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
     >
       {/* Header */}
       <header className="flex items-start justify-between pt-9 pb-10">

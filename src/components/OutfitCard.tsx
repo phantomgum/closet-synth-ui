@@ -28,6 +28,7 @@ export function OutfitCard({ item, index }: OutfitCardProps) {
           width={768}
           height={960}
           loading="lazy"
+          draggable={false}
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
         />
         {/* Item index label — catalog corner */}
