@@ -7,7 +7,7 @@ export function useDragScroll<T extends HTMLElement>() {
   const scrollTop = useRef(0);
   const dragged = useRef(false);
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     if (!ref.current) return;
     
@@ -17,20 +17,20 @@ export function useDragScroll<T extends HTMLElement>() {
     scrollTop.current = ref.current.scrollTop;
   }, []);
 
-  const onPointerUp = useCallback(() => {
+  const onMouseUp = useCallback(() => {
     isDragging.current = false;
-    // We delay resetting dragged so the click event that fires right after pointerup is caught
+    // We delay resetting dragged so the click event that fires right after mouseup is caught
     setTimeout(() => {
       dragged.current = false;
     }, 50);
   }, []);
 
-  const onPointerLeave = useCallback(() => {
+  const onMouseLeave = useCallback(() => {
     isDragging.current = false;
     dragged.current = false;
   }, []);
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging.current || !ref.current) return;
     
     const y = e.clientY;
@@ -61,9 +61,9 @@ export function useDragScroll<T extends HTMLElement>() {
 
   return {
     ref,
-    onPointerDown,
-    onPointerUp,
-    onPointerLeave,
-    onPointerMove,
+    onMouseDown,
+    onMouseUp,
+    onMouseLeave,
+    onMouseMove,
   };
 }
