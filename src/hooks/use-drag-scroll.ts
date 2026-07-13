@@ -11,30 +11,80 @@ export function useDragScroll<T extends HTMLElement>() {
     if (e.button !== 0) return;
     if (!ref.current) return;
     
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+
     isDragging.current = true;
     dragged.current = false;
     startY.current = e.clientY;
     scrollTop.current = ref.current.scrollTop;
+    
+    lastY.current = e.clientY;
+    lastTime.current = performance.now();
+    velocity.current = 0;
+  }, []);
+
+  const startMomentum = useCallback(() => {
+    if (!ref.current) return;
+    
+    if (Math.abs(velocity.current) < 0.5) return;
+    
+    ref.current.scrollTop -= velocity.current;
+    velocity.current *= 0.95; // friction
+    
+    rafId.current = requestAnimationFrame(startMomentum);
   }, []);
 
   const onMouseUp = useCallback(() => {
+    if (!isDragging.current) return;
     isDragging.current = false;
-    // We delay resetting dragged so the click event that fires right after mouseup is caught
+    
     setTimeout(() => {
       dragged.current = false;
     }, 50);
-  }, []);
+
+    const now = performance.now();
+    // If the mouse was held still for a bit before releasing, stop momentum
+    if (now - lastTime.current > 100) {
+      velocity.current = 0;
+    }
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    if (Math.abs(velocity.current) > 0.5) {
+      rafId.current = requestAnimationFrame(startMomentum);
+    }
+  }, [startMomentum]);
 
   const onMouseLeave = useCallback(() => {
+    if (!isDragging.current) return;
     isDragging.current = false;
-    dragged.current = false;
-  }, []);
+    
+    const now = performance.now();
+    if (now - lastTime.current > 100) {
+      velocity.current = 0;
+    }
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    if (Math.abs(velocity.current) > 0.5) {
+      rafId.current = requestAnimationFrame(startMomentum);
+    }
+  }, [startMomentum]);
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging.current || !ref.current) return;
     
     const y = e.clientY;
     const walk = y - startY.current;
+    
+    const now = performance.now();
+    const dt = now - lastTime.current;
+    const dy = y - lastY.current;
+    
+    if (dt > 0) {
+      velocity.current = (dy / dt) * 16; // scale by 60fps frame duration
+    }
+    
+    lastY.current = y;
+    lastTime.current = now;
     
     if (Math.abs(walk) > 5) {
       dragged.current = true;
@@ -55,6 +105,7 @@ export function useDragScroll<T extends HTMLElement>() {
       el.addEventListener("click", handleCaptureClick, { capture: true });
       return () => {
         el.removeEventListener("click", handleCaptureClick, { capture: true });
+        if (rafId.current) cancelAnimationFrame(rafId.current);
       };
     }
   }, []);
