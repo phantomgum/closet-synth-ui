@@ -6,6 +6,11 @@ export function useDragScroll<T extends HTMLElement>() {
   const startY = useRef(0);
   const scrollTop = useRef(0);
   const dragged = useRef(false);
+  
+  const velocity = useRef(0);
+  const lastY = useRef(0);
+  const lastTime = useRef(0);
+  const rafId = useRef<number | null>(null);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
