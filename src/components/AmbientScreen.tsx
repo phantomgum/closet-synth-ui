@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { AtelierMannequin } from "./AtelierMannequin";
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
