@@ -1,4 +1,4 @@
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 function useClock() {
@@ -11,35 +11,8 @@ function useClock() {
   return now;
 }
 
-function useCursor() {
-  const x = useMotionValue(0.5);
-  const y = useMotionValue(0.5);
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      x.set(e.clientX / window.innerWidth);
-      y.set(e.clientY / window.innerHeight);
-    };
-    window.addEventListener("pointermove", onMove);
-    return () => window.removeEventListener("pointermove", onMove);
-  }, [x, y]);
-  return { x: useSpring(x, { stiffness: 90, damping: 20 }), y: useSpring(y, { stiffness: 90, damping: 20 }) };
-}
-
 export function AmbientScreen() {
   const now = useClock();
-  const { x: cx, y: cy } = useCursor();
-
-  // Soft brass spotlight follows cursor
-  const spotX = useTransform(cx, [0, 1], ["0%", "100%"]);
-  const spotY = useTransform(cy, [0, 1], ["0%", "100%"]);
-  const spotBg = useTransform([spotX, spotY], ([sx, sy]) =>
-    `radial-gradient(circle 40vmax at ${sx} ${sy}, oklch(0.9 0.08 78 / 55%), transparent 55%)`
-  );
-
-  // Time letters magnetic pull toward cursor
-  const shiftX = useTransform(cx, [0, 1], [-14, 14]);
-  const shiftY = useTransform(cy, [0, 1], [-8, 8]);
-  const dateShift = useTransform(cx, [0, 1], [6, -6]);
 
   const time = now
     ? now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })
@@ -53,14 +26,22 @@ export function AmbientScreen() {
       key="ambient"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.03 }}
-      transition={{ duration: 0.9, ease: "easeOut" }}
+      exit={{ opacity: 0, scale: 1.06, filter: "blur(12px)" }}
+      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
       className="ambient-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-8 select-none"
     >
-      {/* Cursor-follow brass spotlight */}
+      {/* Slow-drifting brass aurora — pure ambient motion, no cursor */}
       <motion.div
         aria-hidden
-        style={{ background: spotBg }}
+        animate={{
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        }}
+        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 60% 50% at 20% 30%, oklch(0.9 0.09 78 / 45%), transparent 60%), radial-gradient(ellipse 50% 40% at 80% 70%, oklch(0.85 0.06 55 / 35%), transparent 60%)",
+          backgroundSize: "200% 200%",
+        }}
         className="pointer-events-none absolute inset-0 mix-blend-soft-light"
       />
 
@@ -71,8 +52,8 @@ export function AmbientScreen() {
             key={i}
             initial={{ opacity: 0 }}
             animate={{
-              y: [0, -30, 0],
-              opacity: [0.15, 0.55, 0.15],
+              y: [0, -40, 0],
+              opacity: [0.15, 0.6, 0.15],
             }}
             transition={{
               duration: 6 + (i % 5),
@@ -108,7 +89,6 @@ export function AmbientScreen() {
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 1.1, ease: "easeOut" }}
-        style={{ x: shiftX, y: shiftY }}
         className="relative mt-6 font-display text-[clamp(7rem,22vw,16rem)] leading-[0.9] font-normal tracking-tight tabular-nums text-ink"
       >
         {time}
@@ -118,7 +98,6 @@ export function AmbientScreen() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.55, duration: 1 }}
-        style={{ x: dateShift }}
         className="relative mt-4 font-display italic text-2xl text-muted-foreground"
       >
         {date}
@@ -126,7 +105,7 @@ export function AmbientScreen() {
 
       {/* breathing brass dot */}
       <motion.div
-        animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.15, 1] }}
+        animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.2, 1] }}
         transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
         className="relative mt-16 h-1.5 w-1.5 rounded-full bg-brass brass-glow"
       />
@@ -137,7 +116,7 @@ export function AmbientScreen() {
         transition={{ delay: 1, duration: 1.2 }}
         className="relative mt-4 font-sans text-[11px] tracking-[0.45em] text-muted-foreground uppercase"
       >
-        Move · Speak · Step closer
+        Tap · Speak · Step closer
       </motion.p>
     </motion.div>
   );
