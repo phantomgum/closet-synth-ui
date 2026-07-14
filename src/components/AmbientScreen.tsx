@@ -71,6 +71,9 @@ export function AmbientScreen() {
         ))}
       </div>
 
+      {/* Living atelier mannequin — self-drawing brass silhouettes */}
+      <AtelierMannequin />
+
       {/* Corner marks — atelier catalog feel */}
       <div className="pointer-events-none absolute inset-6 flex items-start justify-between font-mono text-[10px] tracking-[0.4em] text-muted-foreground uppercase">
         <span>Atelier · N°01</span>
