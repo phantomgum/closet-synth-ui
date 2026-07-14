@@ -15,21 +15,137 @@ type Silhouette = {
 
 const SILHOUETTES: Silhouette[] = [
   {
-    name: "The Blazer",
+    name: "The T-Shirt",
     paths: [
-      // shoulders + lapel
+      // neckline
+      "M 150 70 Q 175 90 200 70",
+      // shoulders + sleeves
+      "M 150 70 L 105 85 L 90 140 L 125 155 L 130 145",
+      "M 200 70 L 245 85 L 260 140 L 225 155 L 220 145",
+      // body sides + hem
+      "M 130 145 L 125 300 L 225 300 L 220 145",
+      "M 125 300 Q 175 315 225 300",
+    ],
+  },
+  {
+    name: "The Hoodie",
+    paths: [
+      // hood
+      "M 140 60 Q 175 30 210 60",
+      "M 140 60 Q 150 100 175 105 Q 200 100 210 60",
+      // shoulders + long sleeves
+      "M 145 90 L 95 110 L 70 260 L 110 275 L 120 240",
+      "M 205 90 L 255 110 L 280 260 L 240 275 L 230 240",
+      // body
+      "M 120 240 L 120 330 L 230 330 L 230 240",
+      // kangaroo pocket
+      "M 135 240 L 130 285 L 220 285 L 215 240",
+      "M 135 240 Q 175 250 215 240",
+      // drawstrings
+      "M 165 100 L 168 135",
+      "M 185 100 L 182 135",
+    ],
+  },
+  {
+    name: "The Suit",
+    paths: [
+      // shoulders + lapel notch
       "M 90 70 L 140 55 L 175 90 L 210 55 L 260 70",
-      // torso outline
-      "M 90 70 L 80 240 L 130 260 L 175 250 L 220 260 L 270 240 L 260 70",
-      // lapel notch
-      "M 175 90 L 175 200",
+      "M 175 90 L 175 220",
       "M 155 105 L 175 130 L 195 105",
+      // torso + hem
+      "M 90 70 L 80 260 L 130 275 L 175 265 L 220 275 L 270 260 L 260 70",
       // buttons
-      "M 175 160 L 175 162",
-      "M 175 190 L 175 192",
+      "M 175 165 L 175 167",
+      "M 175 200 L 175 202",
       // sleeves
-      "M 90 70 L 55 210 L 85 230",
-      "M 260 70 L 295 210 L 265 230",
+      "M 90 70 L 55 220 L 85 240",
+      "M 260 70 L 295 220 L 265 240",
+      // trouser split
+      "M 130 275 L 140 400 L 170 405 L 175 300",
+      "M 220 275 L 210 400 L 180 405 L 175 300",
+    ],
+  },
+  {
+    name: "The Trousers",
+    paths: [
+      // waistband
+      "M 110 90 L 240 90 L 245 115 L 105 115 Z",
+      // belt loops
+      "M 130 88 L 130 96", "M 175 88 L 175 96", "M 220 88 L 220 96",
+      // center crease left
+      "M 145 115 L 140 380",
+      // center crease right
+      "M 205 115 L 210 380",
+      // outer left leg
+      "M 105 115 L 115 385 L 165 385 L 175 200",
+      // outer right leg
+      "M 245 115 L 235 385 L 185 385 L 175 200",
+      // hem cuffs
+      "M 115 385 L 165 385", "M 185 385 L 235 385",
+    ],
+  },
+  {
+    name: "The Shorts",
+    paths: [
+      // waistband
+      "M 110 130 L 240 130 L 245 155 L 105 155 Z",
+      // belt loops
+      "M 130 128 L 130 136", "M 175 128 L 175 136", "M 220 128 L 220 136",
+      // left leg
+      "M 105 155 L 115 260 L 170 265 L 175 210",
+      // right leg
+      "M 245 155 L 235 260 L 180 265 L 175 210",
+      // hem cuffs
+      "M 115 260 L 170 265", "M 180 265 L 235 260",
+      // crease lines
+      "M 145 155 L 142 258",
+      "M 205 155 L 208 258",
+    ],
+  },
+  {
+    name: "The Loafer",
+    paths: [
+      // sole
+      "M 60 300 Q 175 335 305 305 L 300 320 Q 175 350 60 320 Z",
+      // upper vamp
+      "M 85 300 Q 130 235 220 240 Q 275 245 300 305",
+      // top opening
+      "M 130 250 Q 175 270 235 258",
+      // horsebit strap
+      "M 155 258 L 205 260",
+      "M 158 253 L 158 268",
+      "M 202 255 L 202 270",
+      // heel counter
+      "M 285 285 L 300 305",
+      // stitch line along sole
+      "M 70 315 Q 175 340 300 315",
+    ],
+  },
+  {
+    name: "The Watch",
+    paths: [
+      // upper strap
+      "M 145 40 L 140 155 L 210 155 L 205 40",
+      "M 145 40 Q 175 30 205 40",
+      // strap holes
+      "M 165 60 L 168 60", "M 165 85 L 168 85", "M 165 110 L 168 110",
+      // watch case
+      "M 130 155 L 220 155 L 225 175 L 220 275 L 130 275 L 125 175 Z",
+      // crown
+      "M 220 210 L 240 210 L 240 225 L 220 225",
+      // dial (circle approximated)
+      "M 145 215 Q 175 175 205 215 Q 235 250 205 275 Q 175 300 145 275 Q 115 250 145 215 Z",
+      // hour markers
+      "M 175 195 L 175 200", "M 205 225 L 210 225",
+      "M 175 260 L 175 255", "M 140 225 L 145 225",
+      // hands
+      "M 175 230 L 175 210",
+      "M 175 230 L 195 240",
+      // lower strap
+      "M 145 275 L 140 395 L 210 395 L 205 275",
+      "M 145 395 Q 175 405 205 395",
+      "M 165 300 L 168 300", "M 165 325 L 168 325", "M 165 350 L 168 350",
     ],
   },
   {
@@ -38,35 +154,19 @@ const SILHOUETTES: Silhouette[] = [
       // collar
       "M 100 55 L 145 40 L 175 70 L 205 40 L 250 55",
       // body — long silhouette
-      "M 100 55 L 80 320 L 270 320 L 250 55",
+      "M 100 55 L 80 380 L 270 380 L 250 55",
       // center placket
-      "M 175 70 L 175 320",
+      "M 175 70 L 175 380",
       // double-breasted buttons L
       "M 145 110 L 145 112", "M 145 150 L 145 152", "M 145 190 L 145 192",
       // double-breasted buttons R
       "M 205 110 L 205 112", "M 205 150 L 205 152", "M 205 190 L 205 192",
       // belt
-      "M 85 205 L 265 205",
-      "M 160 200 L 190 200 L 190 210 L 160 210 Z",
+      "M 85 225 L 265 225",
+      "M 160 220 L 190 220 L 190 232 L 160 232 Z",
       // sleeves
-      "M 100 55 L 55 260",
-      "M 250 55 L 295 260",
-    ],
-  },
-  {
-    name: "The Slip Dress",
-    paths: [
-      // straps
-      "M 130 55 L 145 130",
-      "M 220 55 L 205 130",
-      // bodice
-      "M 145 130 L 175 115 L 205 130",
-      // waist
-      "M 145 130 L 130 220 L 220 220 L 205 130",
-      // flowing skirt
-      "M 130 220 Q 90 320 70 400 L 280 400 Q 260 320 220 220",
-      // hem sway line
-      "M 90 380 Q 175 395 260 380",
+      "M 100 55 L 55 280 L 85 295",
+      "M 250 55 L 295 280 L 265 295",
     ],
   },
 ];
