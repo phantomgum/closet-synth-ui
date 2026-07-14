@@ -14,7 +14,7 @@ function useClock() {
 export function AmbientScreen() {
   const now = useClock();
   const time = now
-    ? now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    ? now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true })
     : "--:--";
   const date = now
     ? now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })
