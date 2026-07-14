@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { AtelierMannequin } from "./AtelierMannequin";
 
 function useClock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -69,6 +70,9 @@ export function AmbientScreen() {
           />
         ))}
       </div>
+
+      {/* Living atelier mannequin — self-drawing brass silhouettes */}
+      <AtelierMannequin />
 
       {/* Corner marks — atelier catalog feel */}
       <div className="pointer-events-none absolute inset-6 flex items-start justify-between font-mono text-[10px] tracking-[0.4em] text-muted-foreground uppercase">
