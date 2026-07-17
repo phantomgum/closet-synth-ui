@@ -4,6 +4,7 @@ import { ModeToggle, type ClosetMode } from "./ModeToggle";
 import { VoiceVisualizer } from "./VoiceVisualizer";
 import { OutfitCard, type OutfitItem } from "./OutfitCard";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
+import { Sparkles, Camera } from "lucide-react";
 import outfitTop from "@/assets/outfit-top.jpg";
 import outfitBottom from "@/assets/outfit-bottom.jpg";
 import outfitShoes from "@/assets/outfit-shoes.jpg";
@@ -22,6 +23,7 @@ interface ActiveInterfaceProps {
 
 export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
   const [mode, setMode] = useState<ClosetMode>("in-closet");
+  const [userPrompt, setUserPrompt] = useState("");
   const dragScroll = useDragScroll<HTMLDivElement>();
   const scrollRef = useRef<HTMLElement | null>(null);
 
@@ -113,6 +115,42 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
         aria-label="Voice command status"
       >
         <VoiceVisualizer />
+      </motion.section>
+
+      {/* Vibe / Prompt Input & Action Buttons */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto mt-10 max-w-3xl flex flex-col gap-5"
+      >
+        <input
+          type="text"
+          value={userPrompt}
+          onChange={(e) => setUserPrompt(e.target.value)}
+          placeholder="Enter vibe, aesthetic, or weather..."
+          className="w-full rounded-3xl border border-white/20 bg-white/10 px-8 py-6 text-2xl font-light text-ink placeholder:text-ink/40 backdrop-blur-xl focus:border-brass/50 focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all shadow-sm"
+        />
+        
+        <div className="flex w-full gap-4">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => console.log("Generate New Outfit clicked", { userPrompt })}
+            className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-ink px-6 py-6 text-xl font-medium text-white shadow-xl transition-all hover:bg-ink/90"
+          >
+            <Sparkles className="h-6 w-6" />
+            Generate New Outfit
+          </motion.button>
+          
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => console.log("Review My Fit clicked", { userPrompt })}
+            className="flex flex-1 items-center justify-center gap-3 rounded-3xl border border-ink/10 bg-white/30 px-6 py-6 text-xl font-medium text-ink shadow-sm backdrop-blur-xl transition-all hover:bg-white/50"
+          >
+            <Camera className="h-6 w-6" />
+            Review My Fit
+          </motion.button>
+        </div>
       </motion.section>
 
       {/* Generated outfit grid */}
