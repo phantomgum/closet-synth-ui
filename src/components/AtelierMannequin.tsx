@@ -297,78 +297,71 @@ export function AtelierMannequin() {
               </filter>
             </defs>
 
-            {/* Glow underlayer */}
-            <g stroke="url(#thread)" strokeWidth="2.2" fill="none" opacity="0.35" filter="url(#soft-glow)">
-              {current.paths.map((d, i) => (
-                <motion.path
-                  key={`glow-${i}`}
-                  d={d}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{
-                    duration: 2.2,
-                    delay: i * 0.18,
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                />
-              ))}
-            </g>
+            {/* Normalized garment group — every silhouette fills the same
+                canvas area behind the time text */}
+            <g transform={getFitTransform(current.paths)}>
+              {/* Glow underlayer */}
+              <g stroke="url(#thread)" strokeWidth="2.2" fill="none" opacity="0.35" filter="url(#soft-glow)">
+                {current.paths.map((d, i) => (
+                  <motion.path
+                    key={`glow-${i}`}
+                    d={d}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{
+                      duration: 2.2,
+                      delay: i * 0.18,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  />
+                ))}
+              </g>
 
-            {/* Crisp thread on top */}
-            <g stroke="url(#thread)" strokeWidth="0.9" fill="none">
-              {current.paths.map((d, i) => (
-                <motion.path
-                  key={`line-${i}`}
-                  d={d}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{
-                    duration: 2.2,
-                    delay: i * 0.18,
-                    ease: [0.22, 1, 0.36, 1],
-                    opacity: { duration: 0.6, delay: i * 0.18 },
-                  }}
-                />
-              ))}
-            </g>
+              {/* Crisp thread on top */}
+              <g stroke="url(#thread)" strokeWidth="0.9" fill="none">
+                {current.paths.map((d, i) => (
+                  <motion.path
+                    key={`line-${i}`}
+                    d={d}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{
+                      duration: 2.2,
+                      delay: i * 0.18,
+                      ease: [0.22, 1, 0.36, 1],
+                      opacity: { duration: 0.6, delay: i * 0.18 },
+                    }}
+                  />
+                ))}
+              </g>
 
-            {/* Traveling brass sparks along the outline (subtle) */}
-            <g fill="oklch(0.85 0.14 80)">
-              {[0, 1, 2].map((i) => (
-                <motion.circle
-                  key={`spark-${i}`}
-                  r="1.4"
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: [0, 1, 0],
-                    cx: [80, 260, 175, 80],
-                    cy: [70, 240, 320, 70],
-                  }}
-                  transition={{
-                    duration: 8,
-                    delay: 3 + i * 2.4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-              ))}
+              {/* Traveling brass sparks along the outline (subtle) */}
+              <g fill="oklch(0.85 0.14 80)">
+                {[0, 1, 2].map((i) => (
+                  <motion.circle
+                    key={`spark-${i}`}
+                    r="1.4"
+                    initial={{ opacity: 0 }}
+                    animate={{
+                      opacity: [0, 1, 0],
+                      cx: [80, 260, 175, 80],
+                      cy: [70, 240, 320, 70],
+                    }}
+                    transition={{
+                      duration: 8,
+                      delay: 3 + i * 2.4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ))}
+              </g>
             </g>
           </svg>
-
-          {/* Silhouette caption */}
-          <motion.p
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 0.7, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 2.6, duration: 1 }}
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 font-mono text-[10px] tracking-[0.5em] text-brass uppercase whitespace-nowrap"
-          >
-            Sketching · {current.name}
-          </motion.p>
         </motion.div>
       </AnimatePresence>
     </div>
