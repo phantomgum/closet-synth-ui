@@ -171,6 +171,49 @@ const SILHOUETTES: Silhouette[] = [
   },
 ];
 
+const TARGET = { cx: 175, cy: 235, width: 240, height: 380 };
+
+function getBoundingBox(paths: string[]) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const d of paths) {
+    const nums = d.match(/[-+]?\d*\.?\d+/g)?.map(Number);
+    if (!nums) continue;
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      const x = nums[i];
+      const y = nums[i + 1];
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  const width = maxX - minX;
+  const height = maxY - minY;
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    cx: minX + width / 2,
+    cy: minY + height / 2,
+    width,
+    height,
+  };
+}
+
+function getFitTransform(paths: string[]) {
+  const box = getBoundingBox(paths);
+  if (!box.width || !box.height) return "translate(0, 0)";
+  const scale = Math.min(TARGET.width / box.width, TARGET.height / box.height);
+  const tx = TARGET.cx - box.cx * scale;
+  const ty = TARGET.cy - box.cy * scale;
+  return `translate(${tx}, ${ty}) scale(${scale})`;
+}
+
 export function AtelierMannequin() {
   const [index, setIndex] = useState(0);
 
