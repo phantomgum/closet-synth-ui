@@ -1,10 +1,11 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModeToggle, type ClosetMode } from "./ModeToggle";
 import { VoiceVisualizer } from "./VoiceVisualizer";
 import { OutfitCard, type OutfitItem } from "./OutfitCard";
 import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { Sparkles, Camera } from "lucide-react";
+import { generateOutfitFn } from "../lib/generate-outfit";
 import outfitTop from "@/assets/outfit-top.jpg";
 import outfitBottom from "@/assets/outfit-bottom.jpg";
 import outfitShoes from "@/assets/outfit-shoes.jpg";
@@ -17,6 +18,8 @@ const OUTFIT: OutfitItem[] = [
   { slot: "Accessory", title: "Brass Field Watch", vibe: "Cream Dial, Tan Strap", image: outfitAccessory },
 ];
 
+const DEFAULT_OUTFIT_PROMPT = "Create a versatile outfit for today.";
+
 interface ActiveInterfaceProps {
   onSleep: () => void;
 }
@@ -26,6 +29,7 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
   const [userPrompt, setUserPrompt] = useState("");
   const [currentView, setCurrentView] = useState<'home' | 'loading' | 'results'>('home');
   const [generatedOutfit, setGeneratedOutfit] = useState<OutfitItem[]>(OUTFIT);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const dragScroll = useDragScroll<HTMLDivElement>();
   const scrollRef = useRef<HTMLElement | null>(null);
 
@@ -41,6 +45,34 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
     month: "long",
     day: "numeric",
   });
+
+  // Every screen change starts at a predictable place. Without this, returning
+  // from a long results screen leaves the hub scrolled away from its controls.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentView]);
+
+  const handleGenerateOutfit = async () => {
+    const prompt = userPrompt.trim() || DEFAULT_OUTFIT_PROMPT;
+    setUserPrompt(prompt);
+    setGenerationError(null);
+    setCurrentView("loading");
+
+    try {
+      const data = await generateOutfitFn({
+        data: { prompt, mode },
+      });
+
+      setGeneratedOutfit(data.outfit || data);
+      setCurrentView("results");
+    } catch (error) {
+      console.error("Failed to generate outfit:", error);
+      setGenerationError(
+        error instanceof Error ? error.message : "Unable to generate an outfit. Please try again.",
+      );
+      setCurrentView("home");
+    }
+  };
 
   return (
     <motion.div
@@ -135,35 +167,19 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
               placeholder="Enter vibe, aesthetic, or weather..."
               className="w-full rounded-3xl border border-white/20 bg-white/10 px-8 py-6 text-2xl font-light text-ink placeholder:text-ink/40 backdrop-blur-xl focus:border-brass/50 focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all shadow-sm"
             />
+            {generationError && (
+              <p
+                role="alert"
+                className="rounded-2xl border border-red-500/30 bg-red-950/10 px-5 py-4 text-base text-red-800"
+              >
+                {generationError}
+              </p>
+            )}
             
             <div className="flex w-full gap-4">
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={async () => {
-                  if (!userPrompt.trim()) return;
-                  setCurrentView('loading');
-                  
-                  try {
-                    const response = await fetch('http://localhost:5000/generate', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({ prompt: userPrompt, mode: mode }),
-                    });
-                    
-                    if (!response.ok) {
-                      throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    setGeneratedOutfit(data.outfit || data);
-                    setCurrentView('results');
-                  } catch (error) {
-                    console.error("Failed to generate outfit:", error);
-                    setCurrentView('home');
-                  }
-                }}
+                onClick={handleGenerateOutfit}
                 className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-ink px-6 py-6 text-xl font-medium text-white shadow-xl transition-all hover:bg-ink/90"
               >
                 <Sparkles className="h-6 w-6" />
@@ -265,8 +281,7 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setCurrentView('home');
-                setUserPrompt('');
+                setCurrentView("home");
               }}
               className="rounded-3xl bg-ink px-10 py-5 text-lg font-medium text-white shadow-xl transition-all hover:bg-ink/90 flex items-center gap-2"
             >

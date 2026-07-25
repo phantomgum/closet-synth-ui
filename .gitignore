@@ -16,6 +16,11 @@ dist-ssr
 .nitro
 *.local
 
+# Local secrets. Commit .env.example with placeholders instead.
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
