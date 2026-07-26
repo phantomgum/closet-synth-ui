@@ -91,6 +91,24 @@ function ensureRequiredSlots(inventory: InventoryItem[], mode: string) {
   );
 }
 
+function getGeminiErrorDetails(body: string) {
+  try {
+    const payload: unknown = JSON.parse(body);
+    if (isRecord(payload) && isRecord(payload.error)) {
+      const error = payload.error;
+      return {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+      };
+    }
+  } catch {
+    // Fall through to retain a bounded copy of a non-JSON error response.
+  }
+
+  return { body: body.slice(0, 2_000) };
+}
+
 async function selectOutfit(prompt: string, inventory: InventoryItem[]): Promise<OutfitItem[]> {
   if (!GEMINI_API_KEY) {
     throw new Error("Outfit generation is not configured.");
@@ -108,32 +126,46 @@ Select exactly one item for each required slot: Top, Bottom, Footwear, Accessory
 Return only the slot and id from the registry. Never create an item or id.
 `;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: promptContent }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                slot: { type: "STRING", enum: REQUIRED_SLOTS },
-                id: { type: "STRING" },
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptContent }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  slot: { type: "STRING", enum: REQUIRED_SLOTS },
+                  id: { type: "STRING" },
+                },
+                required: ["slot", "id"],
               },
-              required: ["slot", "id"],
             },
           },
-        },
-      }),
-    },
-  );
+        }),
+      },
+    );
+  } catch (error) {
+    console.error("Gemini outfit generation request could not be sent", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error("The styling service is temporarily unavailable. Please try again.");
+  }
 
   if (!response.ok) {
+    const body = await response.text();
+    console.error("Gemini outfit generation request failed", {
+      status: response.status,
+      statusText: response.statusText,
+      error: getGeminiErrorDetails(body),
+    });
     throw new Error("The styling service is temporarily unavailable. Please try again.");
   }
 
