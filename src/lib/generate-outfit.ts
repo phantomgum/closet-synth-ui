@@ -3,8 +3,10 @@ import { createServerFn } from "@tanstack/react-start";
 const AWS_API_GATEWAY_URL = process.env.AWS_API_GATEWAY_URL;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-const REQUIRED_SLOTS = ["Top", "Bottom", "Footwear", "Accessory"] as const;
-type OutfitSlot = (typeof REQUIRED_SLOTS)[number];
+const OUTFIT_SLOTS = ["Top", "Bottom", "Footwear", "Accessory"] as const;
+const REQUIRED_BASE_SLOTS = ["Top", "Bottom", "Footwear"] as const;
+const MAX_OUTFIT_ITEMS = 6;
+type OutfitSlot = (typeof OUTFIT_SLOTS)[number];
 
 export type OutfitItem = {
   slot: OutfitSlot;
@@ -27,7 +29,7 @@ function stringValue(value: unknown): string | undefined {
 }
 
 function toOutfitSlot(value: unknown): OutfitSlot | undefined {
-  return REQUIRED_SLOTS.includes(value as OutfitSlot) ? (value as OutfitSlot) : undefined;
+  return OUTFIT_SLOTS.includes(value as OutfitSlot) ? (value as OutfitSlot) : undefined;
 }
 
 function normalizeInventoryItem(value: unknown): InventoryItem | undefined {
@@ -82,7 +84,9 @@ async function fetchInventory(mode: string): Promise<InventoryItem[]> {
 }
 
 function ensureRequiredSlots(inventory: InventoryItem[], mode: string) {
-  const missing = REQUIRED_SLOTS.filter((slot) => !inventory.some((item) => item.slot === slot));
+  const missing = REQUIRED_BASE_SLOTS.filter(
+    (slot) => !inventory.some((item) => item.slot === slot),
+  );
   if (missing.length === 0) return;
 
   const scope = mode === "in-closet" ? "your in-closet wardrobe" : "the wardrobe inventory";
@@ -116,14 +120,16 @@ async function selectOutfit(prompt: string, inventory: InventoryItem[]): Promise
 
   const registry = inventory.map(({ id, slot, title, vibe }) => ({ id, slot, title, vibe }));
   const promptContent = `
-You are an elite algorithmic fashion stylist.
-The user wants an outfit based on this request: "${prompt}".
+You are a discerning personal stylist with an eye for proportion, texture, color, and occasion.
+Create a confident, cohesive look for this request: "${prompt}".
 
 AVAILABLE WARDROBE REGISTRY:
 ${JSON.stringify(registry)}
 
-Select exactly one item for each required slot: Top, Bottom, Footwear, Accessory.
-Return only the slot and id from the registry. Never create an item or id.
+Use the wardrobe registry as the source of truth. Begin with the essentials of a complete look, then add pieces only when they materially improve the outfit's balance, practicality, or point of view. Do not fill categories or add items merely to make the look more elaborate.
+
+Select between 3 and ${MAX_OUTFIT_ITEMS} pieces. Include a Top, Bottom, and Footwear. Accessories and additional pieces are optional; use them only when they genuinely serve the outfit. Choose each registry item at most once.
+Return only the slot and id from the registry. Never create an item, id, or category.
 `;
 
   let response: Response;
@@ -142,7 +148,7 @@ Return only the slot and id from the registry. Never create an item or id.
               items: {
                 type: "OBJECT",
                 properties: {
-                  slot: { type: "STRING", enum: REQUIRED_SLOTS },
+                  slot: { type: "STRING", enum: OUTFIT_SLOTS },
                   id: { type: "STRING" },
                 },
                 required: ["slot", "id"],
@@ -206,18 +212,17 @@ Return only the slot and id from the registry. Never create an item or id.
 
   const resolved = outfit as InventoryItem[];
   const slots = resolved.map((item) => item.slot);
+  const ids = resolved.map((item) => item.id);
   if (
-    resolved.length !== REQUIRED_SLOTS.length ||
-    new Set(slots).size !== REQUIRED_SLOTS.length ||
-    REQUIRED_SLOTS.some((slot) => !slots.includes(slot))
+    resolved.length < REQUIRED_BASE_SLOTS.length ||
+    resolved.length > MAX_OUTFIT_ITEMS ||
+    new Set(ids).size !== ids.length ||
+    REQUIRED_BASE_SLOTS.some((slot) => !slots.includes(slot))
   ) {
     throw new Error("The styling service did not create a complete outfit. Please try again.");
   }
 
-  return REQUIRED_SLOTS.map((slot) => {
-    const item = resolved.find((candidate) => candidate.slot === slot)!;
-    return { slot: item.slot, title: item.title, vibe: item.vibe, image: item.image };
-  });
+  return resolved.map(({ slot, title, vibe, image }) => ({ slot, title, vibe, image }));
 }
 
 export const generateOutfitFn = createServerFn({ method: "POST" })

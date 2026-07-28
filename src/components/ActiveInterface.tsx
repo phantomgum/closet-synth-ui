@@ -264,7 +264,7 @@ export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
           >
             {generatedOutfit.map((item, i) => (
               <OutfitCard
-                key={item.slot}
+                key={`${item.slot}-${i}`}
                 item={item}
                 index={i}
                 scrollContainer={scrollRef}
