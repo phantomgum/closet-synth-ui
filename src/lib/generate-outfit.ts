@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
 const AWS_API_GATEWAY_URL = process.env.AWS_API_GATEWAY_URL;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const OUTFIT_SLOTS = ["Top", "Bottom", "Footwear", "Accessory"] as const;
 const REQUIRED_BASE_SLOTS = ["Top", "Bottom", "Footwear"] as const;
@@ -95,7 +94,7 @@ function ensureRequiredSlots(inventory: InventoryItem[], mode: string) {
   );
 }
 
-function getGeminiErrorDetails(body: string) {
+function getApiErrorDetails(body: string) {
   try {
     const payload: unknown = JSON.parse(body);
     if (isRecord(payload) && isRecord(payload.error)) {
@@ -113,53 +112,34 @@ function getGeminiErrorDetails(body: string) {
   return { body: body.slice(0, 2_000) };
 }
 
-async function selectOutfit(prompt: string, inventory: InventoryItem[]): Promise<OutfitItem[]> {
-  if (!GEMINI_API_KEY) {
-    throw new Error("Outfit generation is not configured.");
+function getAnalyzeEndpoint(): string {
+  if (!AWS_API_GATEWAY_URL) {
+    throw new Error("Wardrobe inventory service is not configured.");
   }
 
+  const endpoint = new URL(AWS_API_GATEWAY_URL);
+  const pathParts = endpoint.pathname.split("/");
+  pathParts[pathParts.length - 1] = "analyze";
+  endpoint.pathname = pathParts.join("/");
+  return endpoint.toString();
+}
+
+async function selectOutfit(prompt: string, inventory: InventoryItem[]): Promise<OutfitItem[]> {
   const registry = inventory.map(({ id, slot, title, vibe }) => ({ id, slot, title, vibe }));
-  const promptContent = `
-You are a discerning personal stylist with an eye for proportion, texture, color, and occasion.
-Create a confident, cohesive look for this request: "${prompt}".
-
-AVAILABLE WARDROBE REGISTRY:
-${JSON.stringify(registry)}
-
-Use the wardrobe registry as the source of truth. Begin with the essentials of a complete look, then add pieces only when they materially improve the outfit's balance, practicality, or point of view. Do not fill categories or add items merely to make the look more elaborate.
-
-Select between 3 and ${MAX_OUTFIT_ITEMS} pieces. Include a Top, Bottom, and Footwear. Accessories and additional pieces are optional; use them only when they genuinely serve the outfit. Choose each registry item at most once.
-Return only the slot and id from the registry. Never create an item, id, or category.
-`;
 
   let response: Response;
   try {
-    response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptContent }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  slot: { type: "STRING", enum: OUTFIT_SLOTS },
-                  id: { type: "STRING" },
-                },
-                required: ["slot", "id"],
-              },
-            },
-          },
-        }),
-      },
-    );
+    response = await fetch(getAnalyzeEndpoint(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "outfit-generation",
+        prompt,
+        registry,
+      }),
+    });
   } catch (error) {
-    console.error("Gemini outfit generation request could not be sent", {
+    console.error("Outfit generation API request could not be sent", {
       message: error instanceof Error ? error.message : String(error),
     });
     throw new Error("The styling service is temporarily unavailable. Please try again.");
@@ -167,30 +147,16 @@ Return only the slot and id from the registry. Never create an item, id, or cate
 
   if (!response.ok) {
     const body = await response.text();
-    console.error("Gemini outfit generation request failed", {
+    console.error("Outfit generation API request failed", {
       status: response.status,
       statusText: response.statusText,
-      error: getGeminiErrorDetails(body),
+      error: getApiErrorDetails(body),
     });
     throw new Error("The styling service is temporarily unavailable. Please try again.");
   }
 
   const payload: unknown = await response.json();
-  const text = isRecord(payload)
-    ? stringValue(
-        (payload.candidates as { content?: { parts?: { text?: unknown }[] }[] }[] | undefined)?.[0]
-          ?.content?.parts?.[0]?.text,
-      )
-    : undefined;
-
-  if (!text) throw new Error("The styling service returned no outfit. Please try again.");
-
-  let selections: unknown;
-  try {
-    selections = JSON.parse(text);
-  } catch {
-    throw new Error("The styling service returned an invalid outfit. Please try again.");
-  }
+  const selections = isRecord(payload) && Array.isArray(payload.outfit) ? payload.outfit : payload;
 
   if (!Array.isArray(selections))
     throw new Error("The styling service returned an invalid outfit. Please try again.");
