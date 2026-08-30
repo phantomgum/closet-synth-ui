@@ -74,29 +74,102 @@ function analyzeEndpoint() {
   return endpoint.toString();
 }
 
+const STYLE_SIGNALS = [
+  {
+    request: ["dinner", "date", "sharp", "formal", "office", "event"],
+    garment: ["dress", "button", "chino", "corduroy", "polo", "knit", "sweater", "loafer"],
+  },
+  {
+    request: ["weekend", "casual", "off duty", "relaxed", "easy"],
+    garment: ["hoodie", "jogger", "sweat", "graphic", "athletic", "sneaker", "cargo"],
+  },
+  {
+    request: ["warm", "summer", "sun", "hot"],
+    garment: ["short", "camp collar", "short sleeve", "polo", "jersey"],
+  },
+  {
+    request: ["cold", "winter", "layer", "rain", "wind"],
+    garment: ["hoodie", "jacket", "sweater", "quarter", "long sleeve", "fleece", "shacket"],
+  },
+] as const;
+
 function promptSeed(value: string) {
   return [...value].reduce((total, character) => (total * 31 + character.charCodeAt(0)) >>> 0, 7);
 }
 
+function words(value: string) {
+  return (
+    value
+      .toLowerCase()
+      .match(/[a-z]+/g)
+      ?.filter((word) => word.length > 2) ?? []
+  );
+}
+
+function garmentSearchText(item: WardrobeItem) {
+  return [item.title, item.vibe, item.color, item.material, item.subcategory]
+    .join(" ")
+    .toLowerCase();
+}
+
+function relevanceScore(item: WardrobeItem, prompt: string, index: number) {
+  const requestWords = words(prompt);
+  const garmentText = garmentSearchText(item);
+  let score = requestWords.reduce((total, word) => total + (garmentText.includes(word) ? 5 : 0), 0);
+
+  STYLE_SIGNALS.forEach((signal) => {
+    if (signal.request.some((term) => prompt.toLowerCase().includes(term))) {
+      score += signal.garment.reduce(
+        (total, term) => total + (garmentText.includes(term) ? 4 : 0),
+        0,
+      );
+    }
+  });
+
+  // Stable, prompt-specific tiebreaking lets fresh briefs surface different pieces.
+  return score * 1_000 + ((promptSeed(`${prompt}-${item.id}`) + index) % 997);
+}
+
+function diverseTopCandidates(items: WardrobeItem[], limit: number, prompt: string) {
+  const ranked = items
+    .map((item, index) => ({ item, score: relevanceScore(item, prompt, index) }))
+    .sort((left, right) => right.score - left.score);
+  const selected: WardrobeItem[] = [];
+  const seenSubcategories = new Set<string>();
+
+  for (const { item } of ranked) {
+    const key = item.subcategory.toLowerCase();
+    if (!seenSubcategories.has(key)) {
+      selected.push(item);
+      seenSubcategories.add(key);
+    }
+    if (selected.length === limit) return selected;
+  }
+
+  for (const { item } of ranked) {
+    if (!selected.some((candidate) => candidate.id === item.id)) selected.push(item);
+    if (selected.length === limit) break;
+  }
+  return selected;
+}
+
 function stylingShortlist(source: WardrobeItem[], prompt: string, anchorId?: string) {
-  // Gemini is reliable with a focused edit, but the full 143-piece payload takes
-  // longer than the API Gateway timeout. Rotate a balanced subset for each brief.
+  // Every item competes in retrieval. Gemini receives only the best, diverse edit
+  // so the request completes within API Gateway's response deadline.
   const limits: Record<WardrobeItem["slot"], number> = {
     Top: 12,
     Bottom: 9,
     Footwear: 7,
     Accessory: 4,
   };
-  const seed = promptSeed(prompt);
   const selected = new Map<string, WardrobeItem>();
 
-  OUTFIT_SLOTS.forEach((slot, index) => {
-    const candidates = source.filter((item) => item.slot === slot);
-    const start = candidates.length ? (seed + index * 11) % candidates.length : 0;
-    for (let count = 0; count < Math.min(limits[slot], candidates.length); count += 1) {
-      const item = candidates[(start + count) % candidates.length];
-      selected.set(item.id, item);
-    }
+  OUTFIT_SLOTS.forEach((slot) => {
+    diverseTopCandidates(
+      source.filter((item) => item.slot === slot),
+      limits[slot],
+      prompt,
+    ).forEach((item) => selected.set(item.id, item));
   });
 
   const anchor = source.find((item) => item.id === anchorId);
