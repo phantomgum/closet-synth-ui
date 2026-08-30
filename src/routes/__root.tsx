@@ -77,18 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Smart Closet — Ambient Wardrobe Display" },
+      { title: "Closetly — Your closet, styled" },
       {
         name: "description",
         content:
-          "Touchscreen smart closet display with ambient standby clock, voice command interface, and AI-generated outfit suggestions.",
+          "Discover complete looks from the clothes you own, or build a fresh outfit around one favorite piece.",
       },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Smart Closet — Ambient Wardrobe Display" },
+      { property: "og:title", content: "Closetly — Your closet, styled" },
       {
         property: "og:description",
         content:
-          "Ambient smart home display for AI-generated outfits with voice control and wardrobe scoping.",
+          "Discover complete looks from the clothes you own, or build a fresh outfit around one favorite piece.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

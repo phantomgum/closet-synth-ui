@@ -1,308 +1,322 @@
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import { ModeToggle, type ClosetMode } from "./ModeToggle";
-import { VoiceVisualizer } from "./VoiceVisualizer";
-import { OutfitCard, type OutfitItem } from "./OutfitCard";
-import { useDragScroll } from "@/hooks/use-drag-scroll";
-import { Sparkles, Camera } from "lucide-react";
-import { generateOutfitFn } from "../lib/generate-outfit";
-import outfitTop from "@/assets/outfit-top.jpg";
-import outfitBottom from "@/assets/outfit-bottom.jpg";
-import outfitShoes from "@/assets/outfit-shoes.jpg";
-import outfitAccessory from "@/assets/outfit-accessory.jpg";
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  LoaderCircle,
+  RefreshCw,
+  WandSparkles,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import {
+  buildOutfitFn,
+  discoverOutfitsFn,
+  getClosetFn,
+  type Outfit,
+  type WardrobeItem,
+} from "@/lib/generate-outfit";
 
-const OUTFIT: OutfitItem[] = [
-  { slot: "Top", title: "Linen Notch Blazer", vibe: "Sun-Bleached Bone", image: outfitTop },
-  { slot: "Bottom", title: "Pleated Wool Trouser", vibe: "Warm Camel", image: outfitBottom },
-  { slot: "Footwear", title: "Horsebit Loafer", vibe: "Cognac Calfskin", image: outfitShoes },
-  { slot: "Accessory", title: "Brass Field Watch", vibe: "Cream Dial, Tan Strap", image: outfitAccessory },
-];
+type View = "discover" | "build";
+type BuildState = "idle" | "loading" | "result";
+const MOMENTS = ["Everyday sharp", "Dinner plans", "Easy weekend", "Warm weather"];
 
-const DEFAULT_OUTFIT_PROMPT = "Create a versatile outfit for today.";
-
-interface ActiveInterfaceProps {
-  onSleep: () => void;
+function ItemImage({ item, className = "" }: { item: WardrobeItem; className?: string }) {
+  return (
+    <img
+      src={item.image}
+      alt={item.title}
+      className={`h-full w-full object-cover ${className}`}
+      loading="lazy"
+    />
+  );
 }
 
-export function ActiveInterface({ onSleep }: ActiveInterfaceProps) {
-  const [mode, setMode] = useState<ClosetMode>("in-closet");
-  const [userPrompt, setUserPrompt] = useState("");
-  const [currentView, setCurrentView] = useState<'home' | 'loading' | 'results'>('home');
-  const [generatedOutfit, setGeneratedOutfit] = useState<OutfitItem[]>(OUTFIT);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const dragScroll = useDragScroll<HTMLDivElement>();
-  const scrollRef = useRef<HTMLElement | null>(null);
+function Look({ look, featured = false }: { look: Outfit; featured?: boolean }) {
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 28, rotateX: -4 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0 }}
+      transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -8, transition: { duration: 0.25 } }}
+      className={`look-card ${featured ? "look-card-featured" : ""}`}
+    >
+      <div className="look-collage">
+        {look.items.slice(0, 4).map((item) => (
+          <ItemImage item={item} key={item.id} />
+        ))}
+      </div>
+      <div className="look-copy">
+        <p className="eyebrow">{featured ? "Fresh from your closet" : "Curated look"}</p>
+        <h2>{look.label}</h2>
+        <p>{look.note}</p>
+        <div className="look-pieces">
+          {look.items.map((item) => (
+            <span key={item.id}>{item.slot}</span>
+          ))}
+        </div>
+      </div>
+    </motion.article>
+  );
+}
 
-  // Scroll-linked header parallax + fade
-  const { scrollY } = useScroll({ container: dragScroll.ref as never });
-  const headerY = useTransform(scrollY, [0, 300], [0, -60]);
-  const headerOpacity = useTransform(scrollY, [0, 220], [1, 0.15]);
-  const titleScale = useTransform(scrollY, [0, 300], [1, 0.85]);
-  const progress = useTransform(scrollY, [0, 800], ["0%", "100%"]);
+export function ActiveInterface() {
+  const [view, setView] = useState<View>("discover");
+  const [closet, setCloset] = useState<WardrobeItem[]>([]);
+  const [looks, setLooks] = useState<Outfit[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [moment, setMoment] = useState(MOMENTS[0]);
+  const [buildState, setBuildState] = useState<BuildState>("idle");
+  const [builtItems, setBuiltItems] = useState<WardrobeItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingDiscover, setLoadingDiscover] = useState(true);
+  const selected = closet.find((item) => item.id === selectedId) ?? closet[0];
+  const categories = useMemo(() => [...new Set(closet.map((item) => item.slot))], [closet]);
 
-  const today = new Date().toLocaleDateString([], {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
-  // Every screen change starts at a predictable place. Without this, returning
-  // from a long results screen leaves the hub scrolled away from its controls.
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: "auto" });
-  }, [currentView]);
-
-  const handleGenerateOutfit = async () => {
-    const prompt = userPrompt.trim() || DEFAULT_OUTFIT_PROMPT;
-    setUserPrompt(prompt);
-    setGenerationError(null);
-    setCurrentView("loading");
-
+  const refreshDiscover = async () => {
+    setLoadingDiscover(true);
+    setError(null);
     try {
-      const data = await generateOutfitFn({
-        data: { prompt, mode },
-      });
+      setLooks((await discoverOutfitsFn()).looks);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Your edits couldn't be loaded.");
+    } finally {
+      setLoadingDiscover(false);
+    }
+  };
 
-      setGeneratedOutfit(data.outfit || data);
-      setCurrentView("results");
-    } catch (error) {
-      console.error("Failed to generate outfit:", error);
-      setGenerationError(
-        error instanceof Error ? error.message : "Unable to generate an outfit. Please try again.",
+  useEffect(() => {
+    getClosetFn()
+      .then(({ items }) => {
+        setCloset(items);
+        setSelectedId(items[0]?.id ?? "");
+      })
+      .catch((cause) =>
+        setError(cause instanceof Error ? cause.message : "Your closet couldn't be loaded."),
       );
-      setCurrentView("home");
+    refreshDiscover();
+  }, []);
+
+  const build = async () => {
+    if (!selected) return;
+    setBuildState("loading");
+    setError(null);
+    try {
+      const result = await buildOutfitFn({ data: { anchorId: selected.id, prompt: moment } });
+      setBuiltItems(result.items);
+      setBuildState("result");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Your look couldn't be created.");
+      setBuildState("idle");
     }
   };
 
   return (
-    <motion.div
-      key="active"
-      initial={{ opacity: 0, y: 24, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: 24, filter: "blur(12px)" }}
-      transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-      {...dragScroll}
-      ref={(el) => {
-        dragScroll.ref.current = el;
-        scrollRef.current = el;
-      }}
-      className="ambient-bg h-screen overflow-y-auto px-8 pb-24 lg:px-16 select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-    >
-      {/* Scroll progress rail — brass thread */}
-      <motion.div
-        aria-hidden
-        className="fixed top-0 left-0 right-0 z-20 h-[2px] bg-transparent"
-      >
-        <motion.div
-          style={{ width: progress }}
-          className="h-full bg-brass brass-glow"
-        />
-      </motion.div>
-
-      {/* Header */}
-      <motion.header
-        style={{ y: headerY, opacity: headerOpacity }}
-        className="flex items-start justify-between pt-9 pb-10"
-      >
-        <div>
-          <motion.p
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15, duration: 0.6 }}
-            className="flex items-center gap-2.5 font-mono text-[11px] tracking-[0.45em] text-muted-foreground uppercase"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-brass brass-glow" />
-            {today} · Atelier
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ delay: 0.25, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            style={{ scale: titleScale, transformOrigin: "left center" }}
-            className="mt-2 font-display text-6xl leading-none font-normal tracking-tight text-ink"
-          >
-            Today, you'll wear<span className="italic text-brass">.</span>
-          </motion.h1>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ModeToggle mode={mode} onChange={setMode} />
+    <main className="closet-app">
+      <div className="atmosphere" aria-hidden>
+        <i />
+        <i />
+        <i />
+      </div>
+      <header className="app-header">
+        <button className="wordmark" onClick={() => setView("discover")} aria-label="Closetly home">
+          closetly<span>·</span>
+        </button>
+        <nav aria-label="Main navigation">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onSleep();
-            }}
-            aria-label="Return to standby"
-            className="linen-panel rounded-full px-5 py-3 font-mono text-[11px] tracking-[0.35em] text-muted-foreground uppercase transition-colors hover:text-foreground active:scale-95"
+            className={view === "discover" ? "active" : ""}
+            onClick={() => setView("discover")}
           >
-            Standby
+            Discover
           </button>
+          <button className={view === "build" ? "active" : ""} onClick={() => setView("build")}>
+            Build a look
+          </button>
+        </nav>
+        <p className="closet-count">
+          <span /> {closet.length || "—"} pieces in your closet
+        </p>
+      </header>
+      {error && (
+        <div className="app-error" role="alert">
+          {error}
         </div>
-      </motion.header>
-
-      {currentView === 'home' && (
-        <>
-          {/* Voice visualizer */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto max-w-3xl"
-            aria-label="Voice command status"
-          >
-            <VoiceVisualizer />
-          </motion.section>
-
-          {/* Vibe / Prompt Input & Action Buttons */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto mt-10 max-w-3xl flex flex-col gap-5"
-          >
-            <input
-              type="text"
-              value={userPrompt}
-              onChange={(e) => setUserPrompt(e.target.value)}
-              placeholder="Enter vibe, aesthetic, or weather..."
-              className="w-full rounded-3xl border border-white/20 bg-white/10 px-8 py-6 text-2xl font-light text-ink placeholder:text-ink/40 backdrop-blur-xl focus:border-brass/50 focus:outline-none focus:ring-1 focus:ring-brass/50 transition-all shadow-sm"
-            />
-            {generationError && (
-              <p
-                role="alert"
-                className="rounded-2xl border border-red-500/30 bg-red-950/10 px-5 py-4 text-base text-red-800"
-              >
-                {generationError}
-              </p>
-            )}
-            
-            <div className="flex w-full gap-4">
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleGenerateOutfit}
-                className="flex flex-1 items-center justify-center gap-3 rounded-3xl bg-ink px-6 py-6 text-xl font-medium text-white shadow-xl transition-all hover:bg-ink/90"
-              >
-                <Sparkles className="h-6 w-6" />
-                Generate New Outfit
-              </motion.button>
-              
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={() => console.log("Review My Fit clicked", { userPrompt })}
-                className="flex flex-1 items-center justify-center gap-3 rounded-3xl border border-ink/10 bg-white/30 px-6 py-6 text-xl font-medium text-ink shadow-sm backdrop-blur-xl transition-all hover:bg-white/50"
-              >
-                <Camera className="h-6 w-6" />
-                Review My Fit
-              </motion.button>
-            </div>
-          </motion.section>
-        </>
       )}
-
-      {currentView === 'loading' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950 text-white"
-        >
-          <div className="relative flex items-center justify-center mb-8">
-            <motion.div
-              animate={{ 
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 0.6, 0.3] 
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="absolute h-40 w-40 rounded-full bg-brass/40 blur-3xl"
-            />
-            <div className="relative h-20 w-20 rounded-full border border-white/20 bg-white/10 backdrop-blur-2xl shadow-[0_0_40px_rgba(255,255,255,0.1)] flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-brass" />
-            </div>
-          </div>
-          <motion.p 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-xl font-light text-zinc-400 text-center max-w-md"
-          >
-            Assembling outfit based on:<br/>
-            <span className="text-white font-medium italic mt-4 block">"{userPrompt}"</span>
-          </motion.p>
-        </motion.div>
-      )}
-
-      {currentView === 'results' && (
-        <section className="mx-auto mt-14 max-w-6xl" aria-label="Generated outfit">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.7 }}
-            className="mb-8 flex items-end justify-between border-b border-[color:var(--linen-border)] pb-4"
-          >
-            <div>
-              <p className="font-mono text-[11px] tracking-[0.4em] text-muted-foreground uppercase">
-                The look · N°04
-              </p>
-              <h2 className="mt-1 font-display text-3xl font-normal italic tracking-tight text-ink">
-                Assembled for you
-              </h2>
-            </div>
-            <p className="font-mono text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
-              Scope — {mode === "in-closet" ? "In-Closet" : "Global Wardrobe"}
-            </p>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.7 }}
-            className="grid grid-cols-2 gap-5 xl:grid-cols-4"
-          >
-            {generatedOutfit.map((item, i) => (
-              <OutfitCard
-                key={`${item.slot}-${i}`}
-                item={item}
-                index={i}
-                scrollContainer={scrollRef}
-              />
-            ))}
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.7 }}
-            className="mt-16 flex justify-center"
-          >
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setCurrentView("home");
-              }}
-              className="rounded-3xl bg-ink px-10 py-5 text-lg font-medium text-white shadow-xl transition-all hover:bg-ink/90 flex items-center gap-2"
-            >
-              Back to Hub
-            </motion.button>
-          </motion.div>
-
-          {/* Bottom scroll cue */}
-          <motion.div
+      <AnimatePresence mode="wait">
+        {view === "discover" ? (
+          <motion.section
+            key="discover"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 1 }}
-            className="mt-20 flex flex-col items-center gap-3"
+            exit={{ opacity: 0, y: -14 }}
+            className="discover-page"
           >
-            <span className="h-8 w-px bg-brass/40" />
-            <p className="font-mono text-[10px] tracking-[0.45em] text-muted-foreground uppercase">
-              End of look
-            </p>
-          </motion.div>
-        </section>
-      )}
-    </motion.div>
+            <motion.div
+              className="discover-hero"
+              initial={{ opacity: 0, x: -32 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <p className="eyebrow">Live closet intelligence</p>
+              <h1>
+                Looks you already
+                <br />
+                <em>own.</em>
+              </h1>
+              <p>Thoughtful combinations from the pieces in your closet. No shopping, no noise.</p>
+              <button className="text-action" onClick={refreshDiscover} disabled={loadingDiscover}>
+                <RefreshCw size={15} className={loadingDiscover ? "spin" : ""} /> Refresh the edit
+              </button>
+            </motion.div>
+            {loadingDiscover ? (
+              <div className="loading-edit">
+                <LoaderCircle className="spin" size={26} /> Styling your closet into three fresh
+                looks…
+              </div>
+            ) : (
+              <div className="discover-grid">
+                {looks.map((look, index) => (
+                  <Look key={look.id} look={look} featured={index === 0} />
+                ))}
+                {looks.length === 0 && (
+                  <div className="empty-state">Your first edit will appear here.</div>
+                )}
+              </div>
+            )}
+            <div className="discover-footer">
+              <span>Want to start with a favorite?</span>
+              <button onClick={() => setView("build")}>
+                Build a look <ArrowRight size={16} />
+              </button>
+            </div>
+          </motion.section>
+        ) : (
+          <motion.section
+            key="build"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="builder-page"
+          >
+            <motion.div
+              className="builder-intro"
+              initial={{ opacity: 0, x: -28 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.08, duration: 0.65 }}
+            >
+              <p className="eyebrow">The one-piece method</p>
+              <h1>
+                Start with
+                <br />
+                <em>the piece.</em>
+              </h1>
+              <p>Choose the item you want to wear. We’ll build everything else around it.</p>
+            </motion.div>
+            <div className="builder-layout">
+              <div className="picker-panel">
+                <div className="picker-heading">
+                  <span>1</span>
+                  <div>
+                    <p className="eyebrow">Choose your starting point</p>
+                    <h2>Your closet</h2>
+                  </div>
+                </div>
+                <div className="category-row">
+                  {categories.map((category) => (
+                    <span key={category}>{category}</span>
+                  ))}
+                </div>
+                <div className="garment-grid">
+                  {closet.map((item, index) => (
+                    <motion.button
+                      key={item.id}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(index * 0.018, 0.32) }}
+                      whileHover={{ y: -5, scale: 1.015 }}
+                      whileTap={{ scale: 0.97 }}
+                      className={`garment ${selected?.id === item.id ? "selected" : ""}`}
+                      onClick={() => {
+                        setSelectedId(item.id);
+                        setBuildState("idle");
+                      }}
+                    >
+                      <div className="garment-image">
+                        <ItemImage item={item} />
+                        {selected?.id === item.id && (
+                          <i>
+                            <Check size={14} />
+                          </i>
+                        )}
+                      </div>
+                      <span>{item.subcategory}</span>
+                      <small>{item.color}</small>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+              <aside className="build-panel">
+                {selected && (
+                  <div className="hero-piece">
+                    <ItemImage item={selected} />
+                    <div>
+                      <p className="eyebrow">Your hero piece</p>
+                      <h2>{selected.title}</h2>
+                      <p>{selected.vibe}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="moment-picker">
+                  <div className="picker-heading">
+                    <span>2</span>
+                    <div>
+                      <p className="eyebrow">Set the mood</p>
+                      <h2>Where are you going?</h2>
+                    </div>
+                  </div>
+                  <div className="moment-chips">
+                    {MOMENTS.map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setMoment(option)}
+                        className={moment === option ? "selected" : ""}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="build-button"
+                  onClick={build}
+                  disabled={!selected || buildState === "loading"}
+                >
+                  {buildState === "loading" ? (
+                    <>
+                      <LoaderCircle className="spin" /> Building your look
+                    </>
+                  ) : (
+                    <>
+                      <WandSparkles /> Build my look <ChevronRight />
+                    </>
+                  )}
+                </button>
+                {buildState === "result" && (
+                  <div className="built-look">
+                    <p className="eyebrow">Your completed look</p>
+                    <div className="built-images">
+                      {builtItems.map((item) => (
+                        <ItemImage item={item} key={item.id} />
+                      ))}
+                    </div>
+                    <p>{builtItems.map((item) => item.subcategory).join(" · ")}</p>
+                  </div>
+                )}
+              </aside>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+    </main>
   );
 }
